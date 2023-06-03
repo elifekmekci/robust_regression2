@@ -1,0 +1,158 @@
+---
+title: "Robust Regresyon Uygulama-2"
+author: "ELİF EKMEKCİ"
+date: "2023-06-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Kullanacağımız paketleri yükleyelim
+```{r message=FALSE, warning=FALSE}
+library(carData)
+library(car)
+library(faraway)
+library(MASS)
+```
+
+
+```{r}
+summary(Prestige)
+```
+
+Verimizi incelediğimizde eksik gözlemler olduğunu görüyoruz. Çalışmamızın ilerleyen bölümlerinde bununla ilgili bir düzeltme yapmamız gerekiyor.
+
+```{r}
+mod <-lm(prestige~.,data=Prestige)
+summary(mod)
+```
+
+Birinci aşamada leverage point varlığını araştıralım. İlk olarak önerilen yönteme göre bakalım.
+
+```{r}
+Prestige1<-Prestige[which(is.na(Prestige$type)=="FALSE"),]
+# eksik gozlemler icin bu kodu yazdik
+# missing value (NA) degerlerini cikarttik
+cutpoint<-2*sum(hatvalues(mod))/nrow(Prestige1)
+rownames(Prestige1)[which(hatvalues(mod)>cutpoint)]
+```
+
+Şimdi de half normal plot üzerinden bakalım
+
+```{r}
+jobs<-rownames(Prestige1)
+halfnorm(hatvalues(mod),labs=jobs,ylab="Leverages",4)
+abline(h=cutpoint)
+```
+
+## Outliers 
+```{r}
+## Benferroni Correction ile 
+rstud<-rstudent(mod)
+cutpoint<-qt(0.05/(2*nrow(Prestige1)),nrow(Prestige1)-sum(hatvalues(mod))-1)
+max(abs(rstud))
+outlierTest(mod) # ile de yapabiliriz
+```
+
+```{r}
+## Benferroni correction yapmadan 
+cutpoint2<-qt(0.05/2,nrow(Prestige1)-sum(hatvalues(mod)-1))
+rownames(Prestige1)[which(rstud>abs(cutpoint2))]
+halfnorm(rstud,labs=rownames(Prestige1),2)
+abline(h=abs(cutpoint2))
+abline(h=cutpoint)
+```
+
+```{r}
+outlierTest(mod)
+```
+## Etkili Gözlemler 
+
+## Cook Distance 
+
+```{r}
+p<-sum(hatvalues(mod))
+n<-nrow(Prestige1)
+jobs<-row.names(Prestige1)
+cook<-cooks.distance(mod)
+cutpoint<-qf(0.5,p,n-p)
+halfnorm(cook,labs=jobs,5)
+abline(h=cutpoint)
+```
+
+## DFBETA 
+
+```{r}
+dfbeta<-dfbeta(mod)
+cut<-2/sqrt(n)
+which(abs(dfbeta[,2])>cut)
+```
+
+
+Buraya kadar outlier, leverage ve etkili gözlem olup olmadığını kontrol ettik. Şimdi veriyi test ve train olarak ayırıp robust regresyon modeli uygulayalım
+
+```{r}
+set.seed(124)
+n<-nrow(Prestige1)
+index<-sample(1:n,round(0.8*n))
+```
+
+```{r}
+training<-Prestige1[index,]
+test<-Prestige1[-index,]
+lmod<-lm(prestige~.,data=training)
+```
+
+```{r,warning=FALSE}
+library(caret)
+ctrl<-trainControl(method='cv', number=10)
+X<-model.matrix(lmod)[,-1]
+y<-training$prestige
+cv.lm<-train(X, y,method='rlm',trControl=ctrl)
+print(cv.lm)
+```
+
+En uygun model intercept = TRUE and psi= psi.huber. olarak bulundu
+Bu yüzden ilk olarak interceptli Huber modele bakalım
+
+```{r}
+library(forecast)
+model<-rlm(prestige~.,data=training)
+fits<-predict(model,test)
+accuracy(test$prestige,fits)
+```
+
+```{r}
+rmse<-function(true, predicted,n) {sqrt(sum((predicted - true)^2)/n)}
+rsquare <- function(true, predicted) {
+  sse <- sum((predicted - true)^2)
+  sst <- sum((true - mean(true))^2)
+  rsq <- 1 - sse / sst
+  rsq}
+```
+Test seti üzerindeki RMSE değerini hesaplayalım
+```{r}
+rmse(test$prestige,fits,nrow(test))
+```
+
+Test seti üzerindeki r^2 değerini hesaplayalım
+```{r}
+rsquare(test$prestige,fits)
+```
+
+Şimdi interceptsiz modele bakalım
+```{r}
+nointerceptmodel<-rlm(prestige~0+.,data=training)
+```
+
+nointerceptmodel için outlier test yapalım
+```{r}
+outlierTest(nointerceptmodel)
+```
+service.station.attendant değişkeni outlier olarak bulundu.
+
+
+
+
