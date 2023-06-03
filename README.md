@@ -1,5 +1,5 @@
 # Robust(Dayanıklı) Regression Uygulama-2
- Boston Housing veri seti üzerinde Robust (dayanıklı) regresyon analizi
+ Boston Housing veri seti üzerinde robust (dayanıklı) regresyon analizi
 
 ### BOSTON HOUSING DATA 🏘️
 
