@@ -4,7 +4,7 @@
 ### BOSTON HOUSING DATA 🏘️
 
 Veri analizimiz için 1970 nüfus sayımından elde edilen, Boston'ın 506 nüfus sayımı bölgesi için konut verilerini kullanacağız. BostonHousing veri seti, Harrison ve Rubinfeld'in (1979) orijinal verilerini içerir.
-BostonHousing2 veri setinin, ek uzamsal bilgilerle birlikte düzeltilmiş versiyonudur 
+BostonHousing2 veri setinin, ek uzamsal bilgilerle birlikte düzeltilmiş versiyonudur.
 
 ### Değişkenler
 
